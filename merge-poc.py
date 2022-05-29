@@ -4,8 +4,8 @@ from PyPDF2.pdf import PageObject
 dst_layout = []
 start_from = 1
 
-# FN = "Sufi Wisdom ORACLE.pdf"
-FN = "nums.pdf"
+FN = "Sufi Wisdom ORACLE.pdf"
+# FN = "nums.pdf"
 
 transposition = [
     [1, 14, 3, 12, 5, 10, 7, 8], # front
@@ -36,8 +36,6 @@ with open(FN, 'rb') as r:
         [1, W, 0],
     ]
 
-    # two writers for front and back
-    writers = [PdfFileWriter(), PdfFileWriter()]
 
     group_start_offset = start_from
     out_page = None
@@ -51,40 +49,35 @@ with open(FN, 'rb') as r:
                     # append page to list
                     if out_page != None:
                         print(f"page to {pfb}")
-                        writers[pfb].addPage(out_page)
+                        pages[pfb].append(out_page)
                     # start a new page
                     out_page = PageObject.createBlankPage(None, W*2, H*2)
                     # where next page will go
                     pfb = fb
 
-                print(f"place page {group_start_offset + transposition[fb][i]} in {i%4} slot")
-                page = reader.getPage(group_start_offset + transposition[fb][i])
-                out_page.mergeScaledTranslatedPage(page, *dst_layout[i % 4])
+                sn = group_start_offset + transposition[fb][i]
+                if sn < N:
+                    print(f"place page {sn} in {i%4} slot")
+                    page = reader.getPage(sn)
+                    out_page.mergeScaledTranslatedPage(page, *dst_layout[i % 4])
+                else:
+                    print(f"skip page {sn} (> {N})")
 
         group_start_offset += 2*group_size
 
     # append last page to list
     if out_page != None:
         print(f"page to {pfb}")
-        writers[pfb].addPage(out_page)
+        pages[pfb].append(out_page)
 
+    writer = PdfFileWriter()
+    for p in pages[0]:
+        writer.addPage(p)
     with open('front.pdf', 'wb') as f:
-    	writers[0].write(f)
-    with open('back.pdf', 'wb') as f:
-    	writers[1].write(f)
+    	writer.write(f)
 
-# reader = PdfFileReader(open("invoice.pdf",'rb'))
-# invoice_page = reader.getPage(0)
-# sup_reader = PdfFileReader(open("supplement.pdf",'rb'))
-# sup_page = sup_reader.getPage(1)  # We pick the second page here
-#
-# out_page = PageObject.createBlankPage(None, sup_page.mediaBox.getWidth(), sup_page.mediaBox.getHeight())
-# out_page.mergeScaledTranslatedPage(sup_page, 1, 0, -400)  # -400 is approximate mid-page
-#
-# translated_page.mergePage(invoice_page)
-#
-# writer = PdfFileWriter()
-# writer.addPage(translated_page)
-#
-# with open('out.pdf', 'wb') as f:
-# 	writer.write(f)
+    writer = PdfFileWriter()
+    for p in reversed(pages[1]):
+        writer.addPage(p)
+    with open('back.pdf', 'wb') as f:
+    	writer.write(f)
